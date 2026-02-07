@@ -169,6 +169,40 @@ html, body {
   border-bottom-left-radius: 2px;
 }
 
+.chat-msg.cognate {
+  background: #152030;
+  border-left: 3px solid #3d8fd6;
+  align-self: flex-start;
+}
+
+.cognate-sender {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3d8fd6;
+  margin-bottom: 4px;
+}
+
+.cognate-share-btn {
+  margin-top: 6px;
+  color: var(--text-muted);
+  border-color: var(--border);
+  transition: all 0.15s;
+}
+
+.cognate-share-btn:hover {
+  color: #3d8fd6;
+  border-color: #3d8fd6;
+}
+
+.cognate-share-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chat-msg.assistant .tool-call + .msg-content {
+  margin-top: 6px;
+}
+
 .chat-msg .tool-call {
   background: #16151b;
   border: 1px solid var(--border);

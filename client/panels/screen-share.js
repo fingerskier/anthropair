@@ -1,4 +1,5 @@
 import { getState, setState, appendState } from '../lib/state.js';
+import { injectCognateMessage } from './chat.js';
 
 let room = null;
 let localIdentity = null;
@@ -65,7 +66,12 @@ async function joinRoom() {
         if (msg.type === 'room:chat') {
           // Don't echo our own messages (already shown locally)
           if (participant?.identity !== localIdentity) {
-            appendState('roomMessages', msg);
+            if (msg.text && msg.text.startsWith('cognate:')) {
+              const cognateText = msg.text.slice('cognate:'.length);
+              injectCognateMessage(cognateText, msg.sender || participant?.identity || 'unknown');
+            } else {
+              appendState('roomMessages', msg);
+            }
           }
         }
       } catch (err) {

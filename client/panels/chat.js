@@ -11,6 +11,8 @@ const interruptBtn = () => document.getElementById('interrupt-btn');
 
 let currentAssistantEl = null;
 let currentAssistantText = '';
+let currentTextBlockEl = null;
+let currentSegmentText = '';
 
 export function initChat() {
   // Send button
@@ -85,18 +87,27 @@ function sendRoomMessage() {
     return;
   }
 
+  const cognateMatch = text.match(/^cognate:\s*/i);
+  const isCognate = cognateMatch !== null;
+  const content = isCognate ? text.slice(cognateMatch[0].length) : text;
+
+  if (isCognate && !content) return;
+
   const msg = {
     type: 'room:chat',
     sender: getIdentity() || 'unknown',
-    text,
+    text: isCognate ? `cognate:${content}` : content,
     ts: Date.now(),
   };
 
   const encoded = new TextEncoder().encode(JSON.stringify(msg));
   room.localParticipant.publishData(encoded, { reliable: true });
 
-  // Local echo in task queue
-  appendState('roomMessages', { ...msg, sender: 'You' });
+  appendState('roomMessages', {
+    ...msg,
+    text: content,
+    sender: isCognate ? 'You (shared)' : 'You',
+  });
 
   input.value = '';
   input.focus();
@@ -108,10 +119,20 @@ function handleAgentText(msg) {
   if (!currentAssistantEl) {
     currentAssistantEl = addMessageToUI('assistant', '');
     currentAssistantText = '';
+    currentTextBlockEl = null;
+    currentSegmentText = '';
   }
 
+  if (!currentTextBlockEl) {
+    currentTextBlockEl = document.createElement('div');
+    currentTextBlockEl.className = 'msg-content';
+    currentAssistantEl.appendChild(currentTextBlockEl);
+    currentSegmentText = '';
+  }
+
+  currentSegmentText += msg.text;
   currentAssistantText += msg.text;
-  currentAssistantEl.querySelector('.msg-content').textContent = currentAssistantText;
+  currentTextBlockEl.textContent = currentSegmentText;
   scrollToBottom();
 }
 
@@ -130,6 +151,8 @@ function handleToolCall(msg) {
   toolEl.addEventListener('click', () => toolEl.classList.toggle('expanded'));
 
   currentAssistantEl.appendChild(toolEl);
+  currentTextBlockEl = null;
+  currentSegmentText = '';
   scrollToBottom();
 }
 
@@ -145,6 +168,36 @@ function handleAgentDone(msg) {
     currentAssistantEl.appendChild(costEl);
   }
 
+  // Add share button if connected to a room
+  if (currentAssistantEl && currentAssistantText && getRoom()) {
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'btn btn-xs cognate-share-btn';
+    shareBtn.textContent = 'Share';
+    shareBtn.addEventListener('click', () => {
+      const room = getRoom();
+      if (!room) return;
+
+      const text = shareBtn.dataset.text;
+      const chatMsg = {
+        type: 'room:chat',
+        sender: getIdentity() || 'unknown',
+        text: `cognate:${text}`,
+        ts: Date.now(),
+      };
+
+      const encoded = new TextEncoder().encode(JSON.stringify(chatMsg));
+      room.localParticipant.publishData(encoded, { reliable: true });
+
+      // Local echo in room messages
+      appendState('roomMessages', { ...chatMsg, text, sender: 'You (shared)' });
+
+      shareBtn.textContent = 'Shared';
+      shareBtn.disabled = true;
+    });
+    shareBtn.dataset.text = currentAssistantText;
+    currentAssistantEl.appendChild(shareBtn);
+  }
+
   appendState('chatMessages', {
     role: 'assistant',
     content: currentAssistantText,
@@ -153,6 +206,8 @@ function handleAgentDone(msg) {
 
   currentAssistantEl = null;
   currentAssistantText = '';
+  currentTextBlockEl = null;
+  currentSegmentText = '';
 }
 
 function handleAgentError(msg) {
@@ -162,6 +217,8 @@ function handleAgentError(msg) {
   addMessageToUI('assistant', `Error: ${msg.error}`).style.color = 'var(--danger)';
   currentAssistantEl = null;
   currentAssistantText = '';
+  currentTextBlockEl = null;
+  currentSegmentText = '';
 }
 
 function handleAgentStatus(msg) {
@@ -183,6 +240,8 @@ function handleInterrupted() {
   }
   currentAssistantEl = null;
   currentAssistantText = '';
+  currentTextBlockEl = null;
+  currentSegmentText = '';
 }
 
 function handlePermission(msg) {
@@ -228,6 +287,19 @@ function addMessageToUI(role, content) {
 function scrollToBottom() {
   const el = messagesEl();
   if (el) el.scrollTop = el.scrollHeight;
+}
+
+export function injectCognateMessage(text, sender) {
+  const el = createMessage('cognate', text, { sender });
+  messagesEl().appendChild(el);
+  scrollToBottom();
+
+  appendState('chatMessages', { role: 'cognate', content: text, sender, ts: Date.now() });
+
+  // Send to Claude as a user message with context
+  send({ type: 'agent:send', message: `[Cognate from ${sender}]:\n${text}` });
+  setState('agentStatus', 'thinking');
+  interruptBtn().style.display = '';
 }
 
 function escapeHtml(str) {

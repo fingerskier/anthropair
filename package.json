@@ -16,7 +16,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "NODE_ENV=production node server/index.js",
-    "prepublishOnly": "vite build"
+    "prepublishOnly": "vite build",
+    "release": "npm version patch && git push && git push --tags && npm publish"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.0",

@@ -4,6 +4,25 @@
 export function initSettings() {
   const btn = document.getElementById('settings-btn');
   if (btn) btn.addEventListener('click', openSettings);
+  checkEnvStatus();
+}
+
+/**
+ * Check if any required env vars are unset and flash the settings icon if so.
+ */
+export async function checkEnvStatus() {
+  try {
+    const res = await fetch('/api/settings');
+    const { settings } = await res.json();
+    const missing = settings
+      .filter(s => s.key !== 'PORT')
+      .some(s => !s.value);
+    const btn = document.getElementById('settings-btn');
+    if (!btn) return;
+    btn.classList.toggle('attention', missing);
+  } catch {
+    // silently ignore — server may not be ready yet
+  }
 }
 
 /**
@@ -122,6 +141,7 @@ async function openSettings() {
 
     const result = await saveRes.json();
     close();
+    checkEnvStatus();
 
     if (result.restartNeeded) {
       alert('Settings saved. Some changes require a server restart to take effect.');

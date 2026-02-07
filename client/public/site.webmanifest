@@ -1,6 +1,6 @@
 {
-  "name": "claude-collab",
-  "short_name": "claude-collab",
+  "name": "AntroPair",
+  "short_name": "AntroPair",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#866484",
-  "background_color": "#e7969b",
+  "theme_color": "#ff952d",
+  "background_color": "#91431f",
   "display": "standalone"
 }

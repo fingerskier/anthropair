@@ -69,9 +69,19 @@ async function start() {
   const port = await findAvailablePort(preferredPort, 10);
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    const url = `http://localhost:${port}`;
+    console.log(`Server running on ${url}`);
     console.log(`WebSocket available on ws://localhost:${port}/ws`);
-    if (isDev) console.log('Vite dev server enabled (HMR active)');
+    if (isDev) {
+      console.log('Vite dev server enabled (HMR active)');
+    } else {
+      import('child_process').then(({ exec }) => {
+        const cmd = process.platform === 'win32' ? `start ${url}`
+          : process.platform === 'darwin' ? `open ${url}`
+          : `xdg-open ${url}`;
+        exec(cmd);
+      });
+    }
   });
 }
 

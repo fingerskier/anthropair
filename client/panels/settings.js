@@ -1,8 +1,22 @@
+/**
+ * Initialize the settings panel by binding the settings button click handler.
+ */
 export function initSettings() {
   const btn = document.getElementById('settings-btn');
   if (btn) btn.addEventListener('click', openSettings);
 }
 
+/**
+ * Open the settings modal dialog.
+ *
+ * Fetches the current settings schema (with masked secrets) from the server
+ * and renders a form with the appropriate input type for each field:
+ * - 'secret'  → password input with masked placeholder
+ * - 'select'  → dropdown populated from field.options
+ * - 'text'    → standard text input
+ *
+ * On save, only changed values are sent to POST /api/settings.
+ */
 async function openSettings() {
   // Prevent duplicate modals
   if (document.querySelector('.modal-overlay')) return;
@@ -22,15 +36,28 @@ async function openSettings() {
         ${settings.map(field => `
           <div class="form-group">
             <label class="form-label" for="setting-${field.key}">${field.label}</label>
-            <input
-              class="form-input"
-              id="setting-${field.key}"
-              data-key="${field.key}"
-              data-type="${field.type}"
-              type="${field.type === 'secret' ? 'password' : 'text'}"
-              ${field.type === 'secret' ? `placeholder="${field.value}"` : `value="${field.value}"`}
-              autocomplete="off"
-            />
+            ${field.type === 'select' ? `
+              <select
+                class="form-input form-select"
+                id="setting-${field.key}"
+                data-key="${field.key}"
+                data-type="${field.type}"
+              >
+                ${(field.options || []).map(opt => `
+                  <option value="${opt.value}" ${opt.value === field.value ? 'selected' : ''}>${opt.label}</option>
+                `).join('')}
+              </select>
+            ` : `
+              <input
+                class="form-input"
+                id="setting-${field.key}"
+                data-key="${field.key}"
+                data-type="${field.type}"
+                type="${field.type === 'secret' ? 'password' : 'text'}"
+                ${field.type === 'secret' ? `placeholder="${field.value}"` : `value="${field.value}"`}
+                autocomplete="off"
+              />
+            `}
             ${field.restart ? '<span class="form-hint">Requires restart</span>' : ''}
           </div>
         `).join('')}
@@ -73,8 +100,8 @@ async function openSettings() {
 
       // Only send secret fields if user actually typed a new value
       if (type === 'secret' && !val) continue;
-      // Only send text fields if value changed from original
-      if (type === 'text') {
+      // Only send text/select fields if value changed from original
+      if (type === 'text' || type === 'select') {
         const original = settings.find(s => s.key === key)?.value || '';
         if (val === original) continue;
       }

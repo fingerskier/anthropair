@@ -1,13 +1,22 @@
 {
-  "name": "claude-collab",
-  "version": "0.1.0",
-  "private": true,
+  "name": "anthropair",
+  "version": "2026.2.1",
   "type": "module",
+  "bin": {
+    "anthropair": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "server/",
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "dev": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "NODE_ENV=production node server/index.js"
+    "start": "NODE_ENV=production node server/index.js",
+    "prepublishOnly": "vite build"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.0",

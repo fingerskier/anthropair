@@ -5,6 +5,7 @@ const state = {
   chatMessages: [],
   tasks: [],
   fileTree: [],
+  roomMessages: [],
   agentStatus: 'idle', // idle | thinking | streaming
   livekitRoom: null,
   pendingPermission: null,

@@ -1,10 +1,12 @@
 import { getState, appendState, setState, subscribe } from '../lib/state.js';
 import { send, on } from '../lib/ws-client.js';
 import { createMessage } from '../components/message.js';
+import { getRoom, getIdentity } from './screen-share.js';
 
 const messagesEl = () => document.getElementById('chat-messages');
 const inputEl = () => document.getElementById('chat-input');
 const sendBtn = () => document.getElementById('send-btn');
+const roomSendBtn = () => document.getElementById('room-send-btn');
 const interruptBtn = () => document.getElementById('interrupt-btn');
 
 let currentAssistantEl = null;
@@ -14,9 +16,15 @@ export function initChat() {
   // Send button
   sendBtn()?.addEventListener('click', sendUserMessage);
 
-  // Enter to send (shift+enter for newline)
+  // Room send button
+  roomSendBtn()?.addEventListener('click', sendRoomMessage);
+
+  // Enter to send (shift+enter for newline, ctrl+enter for room)
   inputEl()?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      sendRoomMessage();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendUserMessage();
     }
@@ -64,6 +72,34 @@ export function submitPrompt(prompt) {
     input.value = prompt;
     sendUserMessage();
   }
+}
+
+function sendRoomMessage() {
+  const input = inputEl();
+  const text = input?.value?.trim();
+  if (!text) return;
+
+  const room = getRoom();
+  if (!room) {
+    alert('Join a room first');
+    return;
+  }
+
+  const msg = {
+    type: 'room:chat',
+    sender: getIdentity() || 'unknown',
+    text,
+    ts: Date.now(),
+  };
+
+  const encoded = new TextEncoder().encode(JSON.stringify(msg));
+  room.localParticipant.publishData(encoded, { reliable: true });
+
+  // Local echo in task queue
+  appendState('roomMessages', { ...msg, sender: 'You' });
+
+  input.value = '';
+  input.focus();
 }
 
 function handleAgentText(msg) {

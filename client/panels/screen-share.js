@@ -1,6 +1,10 @@
-import { getState, setState } from '../lib/state.js';
+import { getState, setState, appendState } from '../lib/state.js';
 
 let room = null;
+let localIdentity = null;
+
+export function getRoom() { return room; }
+export function getIdentity() { return localIdentity; }
 
 export function initScreenShare() {
   document.getElementById('join-room-btn')?.addEventListener('click', joinRoom);
@@ -12,6 +16,7 @@ async function joinRoom() {
   if (!roomName) return;
 
   const identity = `user-${Date.now().toString(36)}`;
+  localIdentity = identity;
 
   try {
     // Get token from server
@@ -51,6 +56,21 @@ async function joinRoom() {
 
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
       track.detach().forEach(el => el.remove());
+    });
+
+    room.on(RoomEvent.DataReceived, (payload, participant) => {
+      try {
+        const text = new TextDecoder().decode(payload);
+        const msg = JSON.parse(text);
+        if (msg.type === 'room:chat') {
+          // Don't echo our own messages (already shown locally)
+          if (participant?.identity !== localIdentity) {
+            appendState('roomMessages', msg);
+          }
+        }
+      } catch (err) {
+        console.warn('[livekit] failed to parse data message:', err);
+      }
     });
 
     room.on(RoomEvent.Disconnected, () => {

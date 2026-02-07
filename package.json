@@ -1,6 +1,6 @@
 {
   "name": "anthropair",
-  "version": "2026.2.4",
+  "version": "2026.2.5",
   "type": "module",
   "bin": {
     "anthropair": "./bin/cli.js"
